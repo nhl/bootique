@@ -38,12 +38,14 @@ import io.bootique.config.jackson.MultiFormatJsonNodeParser.ParserType;
 import io.bootique.env.Environment;
 import io.bootique.jackson.JacksonService;
 import io.bootique.log.BootLogger;
+import io.bootique.meta.application.ApplicationMetadata;
 import io.bootique.meta.application.OptionMetadata;
 import joptsimple.OptionSpec;
 
 import java.io.InputStream;
 import java.net.URL;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -77,7 +79,7 @@ public class JsonNodeConfigurationFactoryProvider implements Provider<Configurat
             Environment environment,
             JacksonService jacksonService,
             BootLogger bootLogger,
-            Set<OptionMetadata> optionMetadata,
+            ApplicationMetadata applicationMetadata,
             Set<OptionRefWithConfig> optionDecorators,
             Set<OptionRefWithConfigPath> optionPathDecorators,
             Cli cli) {
@@ -86,7 +88,7 @@ public class JsonNodeConfigurationFactoryProvider implements Provider<Configurat
         this.environment = environment;
         this.jacksonService = jacksonService;
         this.bootLogger = bootLogger;
-        this.optionMetadata = optionMetadata;
+        this.optionMetadata = new HashSet<>(applicationMetadata.getOptions());
         this.optionDecorators = optionDecorators;
         this.optionPathDecorators = optionPathDecorators;
         this.cli = cli;

@@ -19,9 +19,12 @@
 
 package io.bootique.command;
 
-import io.bootique.BQModuleProvider;
+import io.bootique.BQCoreModule;
 import io.bootique.BQRuntime;
 import io.bootique.cli.Cli;
+import io.bootique.di.BQModule;
+import io.bootique.di.Binder;
+import io.bootique.di.DIRuntimeException;
 import io.bootique.meta.application.CommandMetadata;
 import io.bootique.unit.BQInternalTestFactory;
 import org.junit.Before;
@@ -32,6 +35,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static java.util.Arrays.sort;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -55,8 +59,8 @@ public class CommandsIT {
 
     @Test
     public void testModuleCommands() {
-        BQModuleProvider provider = Commands.builder().build();
-        BQRuntime runtime = testFactory.app(args).module(provider).createRuntime();
+
+        BQRuntime runtime = testFactory.app(args).createRuntime();
         CommandManager commandManager = runtime.getInstance(CommandManager.class);
 
         Map<String, ManagedCommand> commands = commandManager.getAllCommands();
@@ -72,25 +76,24 @@ public class CommandsIT {
 
     @Test
     public void testNoModuleCommands() {
-        BQModuleProvider provider = Commands.builder().noModuleCommands().build();
-        BQRuntime runtime = testFactory.app(args).module(provider).createRuntime();
+        BQRuntime runtime = testFactory.app(args).module(b -> BQCoreModule.extend(b).noModuleCommands()).createRuntime();
         CommandManager commandManager = runtime.getInstance(CommandManager.class);
 
         Map<String, ManagedCommand> commands = commandManager.getAllCommands();
         assertCommandKeys(commands, "help", "help-config");
 
-        assertTrue(commands.get("help").isHidden());
+        assertFalse(commands.get("help").isHidden());
         assertFalse(commands.get("help").isDefault());
         assertTrue(commands.get("help").isHelp());
 
         assertTrue(commands.get("help-config").isHidden());
         assertFalse(commands.get("help-config").isDefault());
+        assertFalse(commands.get("help-config").isHelp());
     }
 
     @Test
     public void testModule_ExtraCommandAsType() {
-        BQModuleProvider provider = Commands.builder(C1.class).build();
-        BQRuntime runtime = testFactory.app(args).module(provider).createRuntime();
+        BQRuntime runtime = testFactory.app(args).module(b -> BQCoreModule.extend(b).addCommand(C1.class)).createRuntime();
         CommandManager commandManager = runtime.getInstance(CommandManager.class);
 
         Map<String, ManagedCommand> commands = commandManager.getAllCommands();
@@ -109,32 +112,31 @@ public class CommandsIT {
 
     @Test
     public void testModule_ExtraCommandAsInstance() {
-        BQModuleProvider provider = Commands.builder().add(new C1()).build();
-        BQRuntime runtime = testFactory.app(args).module(provider).createRuntime();
+        BQRuntime runtime = testFactory.app(args).module(TestCommandClassC1.class).createRuntime();
         CommandManager commandManager = runtime.getInstance(CommandManager.class);
 
         Map<String, ManagedCommand> commands = commandManager.getAllCommands();
         assertCommandKeys(commands, "c1", "help", "help-config");
     }
 
-    @Test
+    //Exception when override default help command because help command is always on.
+    @Test(expected = DIRuntimeException.class)
     public void testModule_ExtraCommandOverride() {
-        BQModuleProvider provider = Commands.builder().add(C2_Help.class).build();
-        BQRuntime runtime = testFactory.app(args).module(provider).createRuntime();
+        BQRuntime runtime = testFactory.app(args).module(TestCommandClassC2Help.class).createRuntime();
         CommandManager commandManager = runtime.getInstance(CommandManager.class);
 
         Map<String, ManagedCommand> commands = commandManager.getAllCommands();
         assertCommandKeys(commands, "help", "help-config");
     }
 
-    static class C1 implements Command {
+    public static class C1 implements Command {
         @Override
         public CommandOutcome run(Cli cli) {
             return CommandOutcome.succeeded();
         }
     }
 
-    static class C2_Help implements Command {
+    public static class C2_Help implements Command {
         @Override
         public CommandOutcome run(Cli cli) {
             return CommandOutcome.succeeded();
@@ -143,6 +145,26 @@ public class CommandsIT {
         @Override
         public CommandMetadata getMetadata() {
             return CommandMetadata.builder("help").build();
+        }
+    }
+
+    public static class TestCommandClassC1 implements BQModule {
+
+        @Override
+        public void configure(Binder binder) {
+            BQCoreModule
+                    .extend(binder)
+                    .addCommand(C1.class);
+        }
+    }
+
+    public static class TestCommandClassC2Help implements BQModule {
+
+        @Override
+        public void configure(Binder binder) {
+            BQCoreModule
+                    .extend(binder)
+                    .addCommand(C2_Help.class);
         }
     }
 }

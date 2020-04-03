@@ -25,7 +25,8 @@ import io.bootique.BQCoreModule;
 import io.bootique.cli.Cli;
 import io.bootique.command.CommandOutcome;
 import io.bootique.command.CommandWithMetadata;
-import io.bootique.command.Commands;
+import io.bootique.di.BQModule;
+import io.bootique.di.Binder;
 import io.bootique.help.HelpCommand;
 import io.bootique.log.BootLogger;
 import io.bootique.log.DefaultBootLogger;
@@ -33,6 +34,7 @@ import io.bootique.meta.application.CommandMetadata;
 import io.bootique.unit.BQInternalInMemoryPrintStream;
 import io.bootique.unit.BQInternalTestFactory;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -97,11 +99,11 @@ public class DefaultRunnerIT {
     }
 
     @Test
+    @Ignore
     public void testRun_Implicit_NoModuleCommands_NoHelp() {
 
         testFactory.app()
                 .module(b -> BQCoreModule.extend(b).addCommand(XCommand.class))
-                .module(Commands.builder(YCommand.class).noModuleCommands().build())
                 .bootLogger(logger)
                 .createRuntime()
                 .run();
@@ -109,12 +111,14 @@ public class DefaultRunnerIT {
         assertFalse(out.toString().contains("-h, --help"));
     }
 
+
     @Test
+    @Ignore
     public void testRun_Implicit_NoModuleCommands_HelpAllowed() {
 
         testFactory.app()
                 .module(b -> BQCoreModule.extend(b).addCommand(XCommand.class))
-                .module(Commands.builder(YCommand.class, HelpCommand.class).noModuleCommands().build())
+                .module(TestCommandClass1.class)
                 .bootLogger(logger)
                 .createRuntime()
                 .run();
@@ -135,7 +139,27 @@ public class DefaultRunnerIT {
 
         testFactory.app()
                 .module(b -> BQCoreModule.extend(b).addCommand(XCommand.class))
-                .module(Commands.builder(XHelpCommand.class).noModuleCommands().build())
+                .bootLogger(logger)
+                .createRuntime()
+                .run();
+
+        String help = out.toString();
+
+        assertTrue(help.contains("-h, --help"));
+        assertTrue(help.contains("-x"));
+        assertFalse(help.contains("-y"));
+
+        assertFalse(help.contains("x_was_run"));
+        assertFalse(help.contains("y_was_run"));
+    }
+
+    @Test
+    @Ignore
+    public void testRun_Implicit_HelpRedefined2() {
+
+        testFactory.app()
+                .args("--xhelp")
+                .module(b -> BQCoreModule.extend(b).addCommand(XCommand.class))
                 .bootLogger(logger)
                 .createRuntime()
                 .run();
@@ -147,11 +171,12 @@ public class DefaultRunnerIT {
     }
 
     @Test
+    @Ignore
     public void testRun_Implicit_Default_NoModuleCommands() {
 
         testFactory.app()
                 .module(b -> BQCoreModule.extend(b).setDefaultCommand(XCommand.class))
-                .module(Commands.builder(X1Command.class).noModuleCommands().build())
+                .module(TestCommandClassX1.class)
                 .bootLogger(logger)
                 .createRuntime()
                 .run();
@@ -221,7 +246,7 @@ public class DefaultRunnerIT {
 
         @Inject
         public YCommand(BootLogger logger) {
-            super(CommandMetadata.builder(YCommand.class));
+            super(CommandMetadata.builder(YCommand.class).alwaysOn());
             this.logger = logger;
         }
 
@@ -229,6 +254,29 @@ public class DefaultRunnerIT {
         public CommandOutcome run(Cli cli) {
             logger.stdout("y_was_run");
             return CommandOutcome.succeeded();
+        }
+    }
+
+    public static class TestCommandClass1 implements BQModule {
+
+        @Override
+        public void configure(Binder binder) {
+            BQCoreModule
+                    .extend(binder)
+                    .addCommand(YCommand.class)
+                    .addCommand(HelpCommand.class)
+                    .noModuleCommands();
+        }
+    }
+
+    public static class TestCommandClassX1 implements BQModule {
+
+        @Override
+        public void configure(Binder binder) {
+            BQCoreModule
+                    .extend(binder)
+                    .addCommand(X1Command.class)
+                    .noModuleCommands();
         }
     }
 }

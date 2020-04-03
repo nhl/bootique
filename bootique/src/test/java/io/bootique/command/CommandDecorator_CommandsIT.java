@@ -20,8 +20,11 @@
 package io.bootique.command;
 
 import io.bootique.BQCoreModule;
-import io.bootique.BQModuleProvider;
 import io.bootique.BQRuntime;
+import io.bootique.cli.Cli;
+import io.bootique.di.BQModule;
+import io.bootique.di.Binder;
+import io.bootique.meta.application.CommandMetadata;
 import io.bootique.unit.BQInternalTestFactory;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,12 +38,7 @@ public class CommandDecorator_CommandsIT {
 
     @Test
     public void testAlsoRun_DecorateWithPrivate() {
-
-        // use private "-s" command in decorator
-        BQModuleProvider commandsOverride = Commands.builder().add(MainCommand.class).noModuleCommands().build();
-        CommandDecorator decorator = CommandDecorator.alsoRun("s");
-
-        BQRuntime runtime = createRuntime(commandsOverride, decorator);
+        BQRuntime runtime = createRuntime();
         CommandOutcome outcome = runtime.run();
 
         waitForAllToFinish();
@@ -52,27 +50,44 @@ public class CommandDecorator_CommandsIT {
 
     @Test
     public void testBeforeRun_DecorateWithPrivate() {
-
-        // use private "-s" command in decorator
-        BQModuleProvider commandsOverride = Commands.builder().add(MainCommand.class).noModuleCommands().build();
-        CommandDecorator decorator = CommandDecorator.beforeRun("s");
-
-        BQRuntime runtime = createRuntime(commandsOverride, decorator);
+        BQRuntime runtime = createRuntime();
         CommandOutcome outcome = runtime.run();
+
+        waitForAllToFinish();
 
         assertTrue(outcome.isSuccess());
         assertTrue(getCommand(runtime, MainCommand.class).isExecuted());
         assertTrue(getCommand(runtime, SuccessfulCommand.class).isExecuted());
     }
 
-    private BQRuntime createRuntime(BQModuleProvider commandsOverride, CommandDecorator decorator) {
+    public static class TestCommandClass extends CommandWithMetadata implements BQModule {
+
+        CommandDecorator decorator = CommandDecorator.beforeRun("s");
+
+        public TestCommandClass() {
+            super(CommandMetadata.builder(MainCommand.class).alwaysOn().build());
+        }
+
+        @Override
+        public CommandOutcome run(Cli cli) {
+            return CommandOutcome.succeeded();
+        }
+
+        @Override
+        public void configure(Binder binder) {
+            BQCoreModule.extend(binder)
+                    .addCommand(TestCommandClass.class)
+                    .addCommand(SuccessfulCommand.class)
+                    .addCommand(MainCommand.class)
+                    .decorateCommand(MainCommand.class, decorator)
+                    .noModuleCommands();
+        }
+    }
+
+    private BQRuntime createRuntime() {
         return testFactory
                 .app("--a")
-                .module(b -> BQCoreModule.extend(b)
-                        .addCommand(MainCommand.class)
-                        .addCommand(SuccessfulCommand.class)
-                        .decorateCommand(MainCommand.class, decorator))
-                .module(commandsOverride)
+                .module(TestCommandClass.class)
                 .createRuntime();
     }
 
@@ -87,6 +102,7 @@ public class CommandDecorator_CommandsIT {
             throw new RuntimeException(e);
         }
     }
+
 
     private static class MainCommand extends CommandDecoratorIT.ExecutableOnceCommand {
 

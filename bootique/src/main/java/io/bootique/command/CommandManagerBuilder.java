@@ -34,6 +34,7 @@ public class CommandManagerBuilder<T extends CommandManagerBuilder<T>> {
     protected Collection<Command> commands;
     protected Command helpCommand;
     protected Optional<Command> defaultCommand;
+    private boolean hideModuleCommands;
 
     public CommandManagerBuilder(Collection<Command> commands) {
         this.commands = commands;
@@ -53,6 +54,11 @@ public class CommandManagerBuilder<T extends CommandManagerBuilder<T>> {
         return new DefaultCommandManager(buildCommandMap());
     }
 
+    public T hideModuleCommands(boolean flag) {
+        this.hideModuleCommands = flag;
+        return (T) this;
+    }
+
     protected Map<String, ManagedCommand> buildCommandMap() {
         Map<String, ManagedCommand> commandMap = new HashMap<>();
 
@@ -63,10 +69,19 @@ public class CommandManagerBuilder<T extends CommandManagerBuilder<T>> {
     }
 
     protected void loadCommands(Map<String, ManagedCommand> commandMap) {
-        commands.forEach(c -> addCommandNoOverride(commandMap, c));
+        commands.forEach(c -> {
+            if (hideModuleCommands && !c.getMetadata().isAlwaysOn()) {
+                ManagedCommand mc = ManagedCommand.builder(c).asHidden().build();
+                addCommandNoOverride(commandMap, mc);
+            } else {
+                ManagedCommand mc = ManagedCommand.builder(c).build();
+                addCommandNoOverride(commandMap, mc);
+            }
+        });
     }
 
     protected void loadHelpCommand(Map<String, ManagedCommand> commandMap) {
+
         addCommandNoOverride(commandMap, ManagedCommand.builder(helpCommand).asHelp().build());
     }
 
@@ -81,10 +96,6 @@ public class CommandManagerBuilder<T extends CommandManagerBuilder<T>> {
         Command command = managedCommand.getCommand();
         String name = command.getMetadata().getName();
         return commandMap.put(name, managedCommand);
-    }
-
-    protected void addCommandNoOverride(Map<String, ManagedCommand> commandMap, Command command) {
-        addCommandNoOverride(commandMap, ManagedCommand.forCommand(command));
     }
 
     protected void addCommandNoOverride(Map<String, ManagedCommand> commandMap, ManagedCommand managedCommand) {

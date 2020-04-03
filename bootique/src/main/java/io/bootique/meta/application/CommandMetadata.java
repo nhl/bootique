@@ -34,7 +34,7 @@ public class CommandMetadata implements MetadataNode {
     private String name;
     private String description;
     private String shortName;
-    private boolean hidden;
+    private boolean alwaysOn;
     private Collection<OptionMetadata> options;
 
     public CommandMetadata() {
@@ -87,15 +87,13 @@ public class CommandMetadata implements MetadataNode {
     }
 
     /**
-     * Returns whether the command should be hidden by default. Ultimately {@link io.bootique.command.CommandManager}
-     * defines whether any given command is public or hidden. This property defines the default policy for the given
-     * command.
+     * Returns whether the command should be displays even if the method "noModuleCommands" is applied.
      *
-     * @return whether the command should be hidden by default.
-     * @since 0.25
+     * @return whether the command should be displays even if the method "noModuleCommands" is applied.
+     * @since 2.0
      */
-    public boolean isHidden() {
-        return hidden;
+    public boolean isAlwaysOn() {
+        return alwaysOn;
     }
 
     public static class Builder {
@@ -154,10 +152,10 @@ public class CommandMetadata implements MetadataNode {
 
         /**
          * @return this builder instance.
-         * @since 0.25
+         * @since 2.0
          */
-        public Builder hidden() {
-            this.command.hidden = true;
+        public Builder alwaysOn() {
+            this.command.alwaysOn = true;
             return this;
         }
 

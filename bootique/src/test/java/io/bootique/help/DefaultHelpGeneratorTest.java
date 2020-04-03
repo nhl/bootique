@@ -47,7 +47,7 @@ public class DefaultHelpGeneratorTest {
 
         ApplicationMetadata app = ApplicationMetadata.builder("myapp").build();
 
-        assertLines(new DefaultHelpGenerator(app, 80),
+        assertLines(new DefaultHelpGenerator(app, 80, false),
                 "NAME",
                 "      myapp"
         );
@@ -58,7 +58,7 @@ public class DefaultHelpGeneratorTest {
 
         ApplicationMetadata app = ApplicationMetadata.builder("myapp", "this is my app").build();
 
-        assertLines(new DefaultHelpGenerator(app, 80),
+        assertLines(new DefaultHelpGenerator(app, 80, false),
                 "NAME",
                 "      myapp: this is my app"
         );
@@ -78,7 +78,7 @@ public class DefaultHelpGeneratorTest {
                 .addOption(debugOpt)
                 .build();
 
-        assertLines(new DefaultHelpGenerator(app, 80),
+        assertLines(new DefaultHelpGenerator(app, 80, false),
                 "NAME",
                 "      myapp",
                 "",
@@ -108,7 +108,7 @@ public class DefaultHelpGeneratorTest {
                 .addOption(debugOpt)
                 .build();
 
-        assertLines(new DefaultHelpGenerator(app, 80),
+        assertLines(new DefaultHelpGenerator(app, 80, false),
                 "NAME",
                 "      myapp",
                 "",
@@ -137,7 +137,7 @@ public class DefaultHelpGeneratorTest {
                 .addOption(runOpt)
                 .build();
 
-        assertLines(new DefaultHelpGenerator(app, 80),
+        assertLines(new DefaultHelpGenerator(app, 80, false),
                 "NAME",
                 "      myapp",
                 "",
@@ -167,7 +167,7 @@ public class DefaultHelpGeneratorTest {
                 .addOption(runOpt)
                 .build();
 
-        assertLines(new DefaultHelpGenerator(app, 80),
+        assertLines(new DefaultHelpGenerator(app, 80, false),
                 "NAME",
                 "      myapp",
                 "",
@@ -196,7 +196,7 @@ public class DefaultHelpGeneratorTest {
                 .addCommand(runOpt)
                 .build();
 
-        assertLines(new DefaultHelpGenerator(app, 80),
+        assertLines(new DefaultHelpGenerator(app, 80, false),
                 "NAME",
                 "      myapp",
                 "",
@@ -219,7 +219,7 @@ public class DefaultHelpGeneratorTest {
                 .addOption(opt1)
                 .build();
 
-        assertLines(new DefaultHelpGenerator(app, 80),
+        assertLines(new DefaultHelpGenerator(app, 80, false),
                 "NAME",
                 "      myapp",
                 "",
@@ -243,7 +243,7 @@ public class DefaultHelpGeneratorTest {
                 .addOption(opt3)
                 .build();
 
-        assertLines(new DefaultHelpGenerator(app, 41),
+        assertLines(new DefaultHelpGenerator(app, 41, false),
                 "NAME",
                 "      myapp",
                 "",
@@ -278,7 +278,7 @@ public class DefaultHelpGeneratorTest {
                 .build();
 
         // must insert a forced break...
-        assertLines(new DefaultHelpGenerator(app, 41),
+        assertLines(new DefaultHelpGenerator(app, 41, false),
                 "NAME",
                 "      myapp",
                 "",
@@ -312,7 +312,7 @@ public class DefaultHelpGeneratorTest {
                 .build();
 
         // must insert a forced break...
-        assertLines(new DefaultHelpGenerator(app, 80),
+        assertLines(new DefaultHelpGenerator(app, 80, false),
                 "NAME",
                 "      myapp",
                 "",
@@ -342,7 +342,7 @@ public class DefaultHelpGeneratorTest {
                 .build();
 
         // must insert a forced break...
-        assertLines(new DefaultHelpGenerator(app, 80),
+        assertLines(new DefaultHelpGenerator(app, 80, false),
                 "NAME",
                 "      myapp",
                 "",

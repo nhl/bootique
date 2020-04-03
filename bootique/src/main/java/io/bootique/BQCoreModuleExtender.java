@@ -83,6 +83,16 @@ public class BQCoreModuleExtender extends ModuleExtender<BQCoreModuleExtender> {
         return this;
     }
 
+    public BQCoreModuleExtender noModuleCommands() {
+        binder.bind(Boolean.class, BQCoreModule.NO_MODULE_COMMANDS).toInstance(true);
+        return this;
+    }
+
+    public BQCoreModuleExtender noModuleOptions() {
+        binder.bind(Boolean.class, BQCoreModule.NO_MODULE_OPTIONS).toInstance(true);
+        return this;
+    }
+
     /**
      * Initializes optional default command that will be executed if no explicit command is found in startup arguments.
      *

@@ -68,7 +68,6 @@ public class ManagedCommand {
         public Builder(Command command) {
             managedCommand = new ManagedCommand();
             managedCommand.command = Objects.requireNonNull(command);
-            managedCommand.hidden = command.getMetadata().isHidden();
         }
 
         public Builder asDefault() {

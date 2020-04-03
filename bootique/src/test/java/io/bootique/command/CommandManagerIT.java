@@ -84,7 +84,7 @@ public class CommandManagerIT {
 
             @Override
             public CommandMetadata getMetadata() {
-                return CommandMetadata.builder("xyz").hidden().build();
+                return CommandMetadata.builder("xyz").alwaysOn().build();
             }
         };
 
@@ -98,7 +98,7 @@ public class CommandManagerIT {
 
         ManagedCommand hiddenManaged = commandManager.getAllCommands().get("xyz");
         assertSame(hiddenCommand, hiddenManaged.getCommand());
-        assertTrue(hiddenManaged.isHidden());
+        assertFalse(hiddenManaged.isHidden());
     }
 
     @Test

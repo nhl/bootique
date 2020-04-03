@@ -31,6 +31,7 @@ import io.bootique.command.CommandDecorator;
 import io.bootique.command.CommandDispatchThreadFactory;
 import io.bootique.command.CommandManager;
 import io.bootique.command.CommandManagerBuilder;
+//import io.bootique.command.CommandManagerWithOverridesBuilder;
 import io.bootique.command.CommandRefDecorated;
 import io.bootique.command.ExecutionPlanBuilder;
 import io.bootique.config.CliConfigurationSource;
@@ -73,16 +74,12 @@ import io.bootique.value.Bytes;
 import io.bootique.value.Duration;
 import io.bootique.value.Percent;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
@@ -106,6 +103,9 @@ public class BQCoreModule implements BQModule {
     private ShutdownManager shutdownManager;
     private BootLogger bootLogger;
     private Supplier<Collection<BQModuleMetadata>> modulesSource;
+
+    static final String NO_MODULE_COMMANDS = "no_module_commands";
+    static final String NO_MODULE_OPTIONS = "no_module_options";
 
     private BQCoreModule() {
     }
@@ -135,7 +135,7 @@ public class BQCoreModule implements BQModule {
     private static Optional<Command> defaultCommand(Injector injector) {
         // default is optional, so check via injector whether it is bound...
         Key<Command> key = Key.get(Command.class, DefaultCommand.class);
-        if(injector.hasProvider(key)) {
+        if (injector.hasProvider(key)) {
             Provider<Command> commandProvider = injector.getProvider(key);
             return Optional.of(commandProvider.get());
         }
@@ -159,6 +159,9 @@ public class BQCoreModule implements BQModule {
         // too much code to create config factory.. extracting it in a provider
         // class...
         binder.bind(ConfigurationFactory.class).toProvider(JsonNodeConfigurationFactoryProvider.class).inSingletonScope();
+
+        binder.bindOptional(Key.get(Boolean.class, NO_MODULE_COMMANDS));
+        binder.bindOptional(Key.get(Boolean.class, NO_MODULE_OPTIONS));
     }
 
     OptionMetadata createConfigOption() {
@@ -246,24 +249,33 @@ public class BQCoreModule implements BQModule {
     CommandManager provideCommandManager(
             Set<Command> commands,
             HelpCommand helpCommand,
-            Injector injector) {
+            Injector injector,
+            @Named(NO_MODULE_COMMANDS) Optional<Boolean> noModuleCommandsOptional) {
 
-        return new CommandManagerBuilder(commands)
+        boolean noModuleCommands = noModuleCommandsOptional.orElse(false);
+
+        return new CommandManagerBuilder<>(commands)
                 .defaultCommand(defaultCommand(injector))
+                .hideModuleCommands(noModuleCommands)
                 .helpCommand(helpCommand)
                 .build();
     }
 
     @Provides
     @Singleton
-    HelpGenerator provideHelpGenerator(ApplicationMetadata application, Terminal terminal) {
+    HelpGenerator provideHelpGenerator(
+            ApplicationMetadata application,
+            Terminal terminal,
+            @Named(NO_MODULE_COMMANDS) Optional<Boolean> noModuleCommandsOptional) {
+
+        boolean noModuleCommands = noModuleCommandsOptional.orElse(false);
 
         int maxColumns = terminal.getColumns();
         if (maxColumns < TTY_MIN_COLUMNS) {
             maxColumns = TTY_DEFAULT_COLUMNS;
         }
 
-        return new DefaultHelpGenerator(application, maxColumns);
+        return new DefaultHelpGenerator(application, maxColumns, noModuleCommands);
     }
 
     @Provides
@@ -304,21 +316,29 @@ public class BQCoreModule implements BQModule {
             CommandManager commandManager,
             Set<OptionMetadata> options,
             Set<DeclaredVariable> declaredVars,
-            ModulesMetadata modulesMetadata) {
+            ModulesMetadata modulesMetadata,
+            @Named(NO_MODULE_OPTIONS) Optional<Boolean> noModuleOptionsOptional) {
+
+        boolean noModuleOptions = noModuleOptionsOptional.orElse(false);
 
         ApplicationMetadata.Builder builder = ApplicationMetadata
                 .builder()
-                .description(descriptionHolder.getDescription())
-                .addOptions(options);
+                .description(descriptionHolder.getDescription());
 
-        commandManager.getAllCommands().values().forEach(mc -> {
-            if (!mc.isHidden() && !mc.isDefault()) {
-                builder.addCommand(mc.getCommand().getMetadata());
-            }
-        });
+        if (noModuleOptions) {
+            builder.addOptions(options.stream().filter(OptionMetadata::isAlwaysOn).collect(Collectors.toSet()));
+        } else {
+            builder.addOptions(options);
+        }
 
         // merge default command options with top-level app options
         commandManager.getPublicDefaultCommand().ifPresent(c -> builder.addOptions(c.getMetadata().getOptions()));
+
+        commandManager.getAllCommands().values().forEach(mc -> {
+            if (!mc.isDefault()) {
+                builder.addCommand(mc.getCommand().getMetadata());
+            }
+        });
 
         declaredVars.forEach(dv -> DeclaredVariableMetaCompiler
                 .compileIfValid(dv, modulesMetadata)
@@ -359,13 +379,13 @@ public class BQCoreModule implements BQModule {
     }
 
     private Map<Class<?>, ValueObjectDescriptor> createValueObjectsDescriptorsMap() {
-    	Map<Class<?>, ValueObjectDescriptor> descriptors = new HashMap<>();
-		descriptors.put(Bytes.class, new ValueObjectDescriptor("bytes expression, e.g. 5b, 23MB, 12gigabytes"));
-		descriptors.put(Duration.class, new ValueObjectDescriptor("duration expression, e.g. 5ms, 2s, 1hr"));
-		descriptors.put(Percent.class, new ValueObjectDescriptor("percent expression, e.g. 15%, 75%"));
+        Map<Class<?>, ValueObjectDescriptor> descriptors = new HashMap<>();
+        descriptors.put(Bytes.class, new ValueObjectDescriptor("bytes expression, e.g. 5b, 23MB, 12gigabytes"));
+        descriptors.put(Duration.class, new ValueObjectDescriptor("duration expression, e.g. 5ms, 2s, 1hr"));
+        descriptors.put(Percent.class, new ValueObjectDescriptor("percent expression, e.g. 15%, 75%"));
 
-    	return descriptors;
-	}
+        return descriptors;
+    }
 
     public static class Builder {
         private BQCoreModule module;

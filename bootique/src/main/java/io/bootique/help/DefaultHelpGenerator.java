@@ -20,6 +20,7 @@
 package io.bootique.help;
 
 import io.bootique.meta.application.ApplicationMetadata;
+import io.bootique.meta.application.OptionMetadata;
 import io.bootique.meta.config.ConfigValueMetadata;
 
 import java.util.ArrayList;
@@ -35,10 +36,12 @@ public class DefaultHelpGenerator implements HelpGenerator {
 
     private ApplicationMetadata application;
     private int lineWidth;
+    private boolean noModuleCommands;
 
-    public DefaultHelpGenerator(ApplicationMetadata application, int lineWidth) {
+    public DefaultHelpGenerator(ApplicationMetadata application, int lineWidth, boolean noModuleCommandsOptional) {
         this.application = application;
         this.lineWidth = lineWidth;
+        this.noModuleCommands = noModuleCommandsOptional;
     }
 
     protected HelpAppender createAppender(Appendable out) {
@@ -66,9 +69,12 @@ public class DefaultHelpGenerator implements HelpGenerator {
 
         application.getCommands().forEach(c -> {
 
-            // for now expose commands as simply options (commands are options in a default CLI parser)
-            helpOptions.add(c.asOption());
-            c.getOptions().forEach(o -> helpOptions.add(o));
+            if (!noModuleCommands || c.isAlwaysOn()) {
+                // for now expose commands as simply options (commands are options in a default CLI parser)
+                OptionMetadata optionMetadata = c.asOption();
+                helpOptions.add(optionMetadata);
+                c.getOptions().forEach(o -> helpOptions.add(o));
+            }
         });
 
         application.getOptions().forEach(o -> helpOptions.add(o));

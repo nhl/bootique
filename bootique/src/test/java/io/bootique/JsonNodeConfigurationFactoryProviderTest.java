@@ -26,6 +26,7 @@ import io.bootique.config.jackson.JsonNodeConfigurationFactory;
 import io.bootique.env.Environment;
 import io.bootique.jackson.JacksonService;
 import io.bootique.log.DefaultBootLogger;
+import io.bootique.meta.application.ApplicationMetadata;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -76,11 +77,13 @@ public class JsonNodeConfigurationFactoryProviderTest {
 
     private static ConfigurationFactory factory(ConfigurationSource mockSource, Environment mockEnvironment) {
 
+        ApplicationMetadata app = ApplicationMetadata.builder("myapp", "this is my app").build();
+
         JacksonService mockJackson = mock(JacksonService.class);
         when(mockJackson.newObjectMapper()).thenReturn(new ObjectMapper());
 
         ConfigurationFactory factory = new JsonNodeConfigurationFactoryProvider(mockSource, mockEnvironment, mockJackson,
-                new DefaultBootLogger(true), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), null).get();
+                new DefaultBootLogger(true), app , Collections.emptySet(), Collections.emptySet(), null).get();
 
         assertNotNull(factory);
         assertTrue(factory instanceof JsonNodeConfigurationFactory);

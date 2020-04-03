@@ -34,6 +34,7 @@ public class OptionMetadata implements MetadataNode {
     private OptionValueCardinality valueCardinality;
     private String valueName;
     private String defaultValue;
+    private boolean alwaysOn;
 
     public static Builder builder(String name) {
         return new Builder().name(name);
@@ -78,6 +79,16 @@ public class OptionMetadata implements MetadataNode {
      */
     public String getDefaultValue() {
         return defaultValue;
+    }
+
+    /**
+     * Returns whether the option should be displays even if the method "noModuleOptions" is applied.
+     *
+     * @return whether the option should be displays even if the method "noModuleOptions" is applied.
+     * @since 2.0
+     */
+    public boolean isAlwaysOn() {
+        return alwaysOn;
     }
 
     public static class Builder {
@@ -128,6 +139,18 @@ public class OptionMetadata implements MetadataNode {
             this.option.valueName = valueName;
             return this;
         }
+
+        /**
+         * Mark option as always displayed
+         *
+         * @return this builder instance.
+         * @since 2.0
+         */
+        public Builder alwaysOn() {
+            this.option.alwaysOn = true;
+            return this;
+        }
+
 
         /**
          * Marks value optional and sets the default value for this option that will be used if the option is provided on

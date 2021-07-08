@@ -142,54 +142,12 @@ public class ConsoleAppender {
         String joined = String.join("", phrases);
 
         SPACE.splitAsStream(joined).forEach(word -> {
-
             String separator = line.length() > 0 ? " " : "";
 
             if (line.length() + separator.length() + word.length() <= maxLength) {
                 line.append(separator).append(word);
             } else {
-
-                if (word.length() <= maxLength) {
-                    folded.add(line.toString());
-                    line.setLength(0);
-                    line.append(word);
-                } else {
-
-                    // fold long words...
-
-                    // append head to existing line
-                    int head = maxLength - separator.length() - line.length();
-                    if (head > 0) {
-                        line.append(separator).append(word.substring(0, head));
-                        folded.add(line.toString());
-                        line.setLength(0);
-                    }
-                    else if(head < 0) {
-                        // head is -1 when the line is full and even the separator won't fit.
-                        head = 0;
-                    }
-
-                    int len = word.length();
-                    int start = head;
-
-                    int end = -1;
-                    while (start < len) {
-
-                        end = start + maxLength;
-                        if (end > len) {
-                            // don't fold yet, there may be more words...
-                            end = len;
-                            line.append(word.substring(start, end));
-                        } else {
-
-                            line.append(word.substring(start, end));
-                            folded.add(line.toString());
-                            line.setLength(0);
-                        }
-
-                        start = end;
-                    }
-                }
+                foldAtWord(maxLength, folded, line, word, separator);
             }
         });
 
@@ -199,6 +157,50 @@ public class ConsoleAppender {
         }
 
         return folded;
+    }
+
+    private void foldAtWord(int maxLength, List<String> folded, StringBuilder line, String word, String separator) {
+        if (word.length() <= maxLength) {
+            folded.add(line.toString());
+            line.setLength(0);
+            line.append(word);
+        } else {
+
+            // fold long words...
+
+            // append head to existing line
+            int head = maxLength - separator.length() - line.length();
+            if (head > 0) {
+                line.append(separator).append(word.substring(0, head));
+                folded.add(line.toString());
+                line.setLength(0);
+            }
+            else if(head < 0) {
+                // head is -1 when the line is full and even the separator won't fit.
+                head = 0;
+            }
+
+            int len = word.length();
+            int start = head;
+
+            int end = -1;
+            while (start < len) {
+
+                end = start + maxLength;
+                if (end > len) {
+                    // don't fold yet, there may be more words...
+                    end = len;
+                    line.append(word, start, end);
+                } else {
+
+                    line.append(word, start, end);
+                    folded.add(line.toString());
+                    line.setLength(0);
+                }
+
+                start = end;
+            }
+        }
     }
 
 }
